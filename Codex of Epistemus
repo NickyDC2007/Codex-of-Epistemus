@@ -1,9 +1,15 @@
+// ---------------------------------------------
+// Codex Of Epistemus - Roguelike em C (Comentado)
+// ---------------------------------------------
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <conio.h>
 #include <windows.h>
 
+// ----- Definições de Tipos de Blocos no Mapa -----
 #define PAREDE 0
 #define GRAMA 1
 #define TERRA 2
@@ -23,8 +29,32 @@
 #define PEDRA 16
 #define ESPINHO 17
 #define GELO 18
+#define CHAVE 19
+#define FLORES 20
+#define PORTA_FECHADA 21
+#define BOTAO 22
+#define CHAVE_2 23
+#define BOTAO_ACIONADO 24
+#define PEDRA_FLAMEJANTE 25
+#define CHAVE_3 26
+#define BOTAO_2 27
+#define CHAVE_V 28
+#define TELHA 29
+#define TELEPORTADOR_E 30
+#define TELEPORTADOR_D 31
+
+// ----- Variáveis de Estado do Jogo -----
+int chave_v = 0;
+int chave_1 = 0;
+int chave_2 = 0;
+int chave_3 = 0;
+
+int botao_2 = 0;
+int botao_3 = 0;
 
 int limpar_tela = 0;
+
+int saida = 0;
 
 int nadar = 0;
 int flor = 0;
@@ -33,6 +63,13 @@ int checar_vila = 0;
 int checar_fase_1 = 0;
 int checar_fase_2 = 0;
 
+int vidas = 3;
+
+int fim = 0;
+
+// ----- Funções Utilitárias -----
+
+// Move o cursor para uma posição específica no console
 void gotoxy(int x, int y) 
 {
     COORD coordenada;
@@ -41,6 +78,40 @@ void gotoxy(int x, int y)
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coordenada);
 }
 
+// Mensagem de vitória do jogo
+void vitoria()
+{
+    gotoxy(0,15);
+    printf("    \033[1;33m[ O artefato foi resgatado. As sombras recuam... e o mundo respira aliviado. Sua lenda começa agora. Parabéns! ]\033[0m\n");
+    
+    _getch();
+
+    fim++;
+}
+
+// Controla a morte do herói e decremento de vidas
+void morte(int h[2])
+{
+    if (vidas > 0)
+    {
+        gotoxy(0,2);
+        printf("                                       \033[1;31m[ Você morreu! Restam apenas %d vidas ]\033[0m\n", vidas);
+    
+        limpar_tela = 1;
+        gotoxy(h[0] + 2,h[1]);
+    }
+    else
+    {
+        gotoxy(0,2);
+        printf("                                     \033[1;31m[ Você não tem mais vidas! Jogo encerrado ]\033[0m\n");
+        fim++;
+
+        limpar_tela = 1;
+        gotoxy(h[0] + 2,h[1]);
+    }
+}
+
+// Exibe o nome do local atual (vila, fases, casa)
 void limpar_goto(int mapa,int h[2])
 {
     switch (mapa)
@@ -54,6 +125,28 @@ void limpar_goto(int mapa,int h[2])
         }
         break;
     case 2:
+        if (limpar_tela != 0)
+        {
+        gotoxy(0,2);
+        printf("                                                   \033[0;37m[ Vale Pedregoso ]\033[0m                                                   ");
+        gotoxy(h[0] + 2,h[1]);
+        }
+        break;
+    case 3:
+        if (limpar_tela != 0)
+        {
+        gotoxy(0,2);
+        printf("                                                  \033[0;36m[ Picos Gelados ]\033[0m                                                     ");
+        gotoxy(h[0] + 2,h[1]);
+        }
+        break;
+    case 4:
+        if (limpar_tela != 0)
+        {
+        gotoxy(0,2);
+        printf("                                                 \033[1;31m[ Inferno Escaldante ]\033[0m                                                     ");
+        gotoxy(h[0] + 2,h[1]);
+        }
         break;
     case 5:
         if (limpar_tela != 0)
@@ -68,7 +161,8 @@ void limpar_goto(int mapa,int h[2])
     limpar_tela = 0;
 }
 
-void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int level_2[22][22], int level_3[70][24], int casa_1[15][15], int casa_2[10][10])
+// Movimento do herói em diferentes mapas. Controla colisão e atualização de posição.
+void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int level_2[21][21], int level_3[60][25], int casa_1[15][15])
 {
     char tecla;
     int novo_x = heroi[0];
@@ -107,7 +201,7 @@ void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int 
         if (matriz_x_v >= 0 && matriz_x_v < 34 && matriz_y_v >= 0 && matriz_y_v < 20)
         {
             int tipo_bloco = vila[matriz_x_v][matriz_y_v];
-            int blocos_bloqueados[] = {PAREDE, TELHADO_VERTICAL, TELHADO_HORIZONTAL, TELHADO_IE, TELHADO_SE, TELHADO_ID, TELHADO_SD, PORTA, MEIA_PORTA, AGUA};
+            int blocos_bloqueados[] = {PAREDE, TELHADO_VERTICAL, TELHADO_HORIZONTAL, TELHADO_IE, TELHADO_SE, TELHADO_ID, TELHADO_SD, PORTA, MEIA_PORTA, AGUA, TELHA};
 
             switch (nadar)
             {
@@ -118,7 +212,7 @@ void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int 
 
             int pode_mover = 1;
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 11; i++)
             {
                 if (tipo_bloco == blocos_bloqueados[i])
                 {
@@ -216,7 +310,7 @@ void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int 
         int matriz_x_l2= (novo_x - 36) / 2;
         int matriz_y_l2 = novo_y - 5;
         
-        if (matriz_x_l2 >= 0 && matriz_x_l2 < 22 && matriz_y_l2 >= 0 && matriz_y_l2 < 22)
+        if (matriz_x_l2 > 0 && matriz_x_l2 < 20 && matriz_y_l2 > 0 && matriz_y_l2 < 20)
         {
             int tipo_bloco = level_2[matriz_x_l2][matriz_y_l2];
             int blocos_bloqueados[] = {PAREDE, AGUA};
@@ -231,6 +325,55 @@ void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int 
             int pode_mover = 1;
 
             for (int i = 0; i < 2; i++)
+            {
+                if (tipo_bloco == blocos_bloqueados[i])
+                {
+                    pode_mover = 0;
+                    break;
+                }
+            }
+
+            if (pode_mover)
+            {
+                heroi[0] = novo_x;
+                heroi[1] = novo_y;
+            }
+        }
+        break;
+    case 4:
+        if (tecla == 'w' || tecla == 'W' || tecla == 72)
+        {    
+            novo_y = heroi[1] - 1;
+        }
+        else if (tecla == 's' || tecla == 'S' || tecla == 80)
+        {
+            novo_y = heroi[1] + 1;
+        }
+        else if (tecla == 'd' || tecla == 'D' || tecla == 77)
+        {
+            novo_x = heroi[0] + 2;
+        }
+        else if (tecla == 'a' || tecla == 'A' || tecla == 75)
+        {
+            novo_x = heroi[0] - 2;
+        }
+
+        if (novo_x < 0 || novo_x > 120 || novo_y < 5 || novo_y > 30)
+        {
+            return;
+        }
+
+        int matriz_x_l3 = (novo_x / 2);
+        int matriz_y_l3 = novo_y - 4;
+        
+        if (matriz_x_l3 > 1 && matriz_x_l3 < 60 && matriz_y_l3 > 0 && matriz_y_l3 < 24)
+        {
+            int tipo_bloco = level_3[matriz_x_l3][matriz_y_l3];
+            int blocos_bloqueados[] = {PAREDE};
+
+            int pode_mover = 1;
+
+            for (int i = 0; i < 1; i++)
             {
                 if (tipo_bloco == blocos_bloqueados[i])
                 {
@@ -275,11 +418,11 @@ void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int 
         if (matriz_x_casa1 >= 0 && matriz_x_casa1 < 15 && matriz_y_casa1 >= 0 && matriz_y_casa1 < 15)
         {
             int tipo_bloco = casa_1[matriz_x_casa1][matriz_y_casa1];
-            int blocos_bloqueados[] = {TELHADO_HORIZONTAL, TELHADO_VERTICAL, PORTA, MEIA_PORTA};
+            int blocos_bloqueados[] = {TELHADO_HORIZONTAL, TELHADO_VERTICAL, PORTA, MEIA_PORTA, NPC_Q1};
 
             int pode_mover = 1;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 if (tipo_bloco == blocos_bloqueados[i])
                 {
@@ -298,13 +441,277 @@ void h_mov(int mapa_v, int heroi[2], int vila[34][20], int level_1[16][16], int 
     }
 }
 
+// Movimento aleatório de monstros em fase 2, com restrições de colisão
+void m_mov(int mapa_v, int monstro[2], int level_2[21][21])
+{
+    int novo_x = monstro[0];
+    int novo_y = monstro[1];
+
+    int tecla = rand() % 4;
+
+    switch (mapa_v)
+    {
+    case 1:
+        if (tecla == 0) 
+        {
+            novo_y = monstro[1] - 1;
+        }
+        else if (tecla == 1) 
+        {
+            novo_y = monstro[1] + 1;
+        }
+        else if (tecla == 2) 
+        {
+            novo_x = monstro[0] + 2;
+        }
+        else if (tecla == 3) 
+        {
+            novo_x = monstro[0] - 2;
+        }
+
+        int matriz_x_f2 = (novo_x - 36) / 2;
+        int matriz_y_f2 = novo_y - 5;
+        
+        if (matriz_x_f2 > 0 && matriz_x_f2 < 20 && matriz_y_f2 > 0 && matriz_y_f2 < 20)
+        {
+            int tipo_bloco = level_2[matriz_x_f2][matriz_y_f2];
+            int blocos_bloqueados[] = {PAREDE, AGUA, BOTAO, BOTAO_ACIONADO, CHAVE_2};
+
+            int pode_mover = 1;
+
+            for (int i = 0; i < 5; i++)
+            {
+                if (tipo_bloco == blocos_bloqueados[i])
+                {
+                    pode_mover = 0;
+                    break;
+                }
+            }
+
+            if (pode_mover)
+            {
+                monstro[0] = novo_x;
+                monstro[1] = novo_y;
+            }
+        }
+        break;
+    case 2:
+
+        break;
+    }
+}
+
+// Movimento do chefe com inteligência básica para seguir o herói
+void c_mov(int chefe[2], int heroi[2], int level_3[60][25])
+{
+    int novo_x = chefe[0];
+    int novo_y = chefe[1];
+    int randomico = rand() % 4;
+
+    switch (randomico)
+    {
+    case 0:
+        if (chefe[0] > heroi[0]) 
+        {
+            novo_x = chefe[0] - 2;
+        }
+        else if (chefe[0] < heroi[0])
+        {
+            novo_x = chefe[0] + 2;
+        }
+        else if (chefe[1] > heroi[1])
+        {
+            novo_y = chefe[1] - 1;
+        }
+        else if (chefe[1] < heroi[1])
+        {
+            novo_y = chefe[1] + 1;
+        }
+        break;
+    case 1:
+        if (chefe[1] > heroi[1])
+        {
+            novo_y = chefe[1] - 1;
+        }
+        else if (chefe[1] < heroi[1])
+        {
+            novo_y = chefe[1] + 1;
+        }
+        else if (chefe[0] > heroi[0]) 
+        {
+            novo_x = chefe[0] - 2;
+        }
+        else if (chefe[0] < heroi[0])
+        {
+            novo_x = chefe[0] + 2;
+        }
+        break;
+    }
+
+    int matriz_x_f3 = novo_x / 2;
+    int matriz_y_f3 = novo_y - 4;
+        
+    if (matriz_x_f3 >= 0 && matriz_x_f3 < 60 && matriz_y_f3 >= 0 && matriz_y_f3 < 26)
+    {
+        int tipo_bloco = level_3[matriz_x_f3][matriz_y_f3];
+        int blocos_bloqueados[] = {PAREDE, AGUA};
+
+        int pode_mover = 1;
+
+        for (int i = 0; i < 2; i++)
+        {
+            if (tipo_bloco == blocos_bloqueados[i])
+            {
+                pode_mover = 0;
+                break;
+            }
+        }
+
+        if (pode_mover)
+        {
+            chefe[0] = novo_x;
+            chefe[1] = novo_y;
+        }
+    }
+}
+
+// Desenha o herói na posição atual
 void hero(int h[2])
 {
     gotoxy(h[0], h[1]);
     printf(" \033[1;37mH\033[0m");
 }
 
-void n_gelo(int x, int y, int fase_2[22][22])
+// Desenha o monstro na posição atual
+void monster(int m[2])
+{
+    gotoxy(m[0], m[1]);
+    printf(" \033[1;31mM\033[0m");
+}
+
+// Desenha o chefe na posição atual
+void chefe(int c[2])
+{
+    gotoxy(c[0], c[1]);
+    printf(" \033[0;31mC\033[0m");
+}
+
+// ----- Funções de Criação de Blocos -----
+void n_fogoparede(int x, int y, int fase_3[60][25])
+{
+    if ((x == 1 && y >= 1 && y <= 23) || (x >= 20 && x <= 21 && y >= 1 && y <= 23) || (x == 21 && y >= 1 && y <= 23) || (x == 38 && y >= 1 && y <= 23) || (x == 39 && y >= 1 && y <= 23) || (x == 58 && y >= 1 && y <= 23) ||
+        (x >= 5 && x <= 16 && y == 12) || (x >= 24 && x <= 35 && y == 12) || (x >= 43 && x <= 54 && y == 12) ||
+        (x == 5 && y >= 11 && y <= 13) || (x == 16 && y >= 11 && y <= 13) || (x == 24 && y >= 11 && y <= 13) || (x == 35 && y >= 11 && y <= 13) || (x == 43 && y >= 11 && y <= 13) || (x == 54 && y >= 11 && y <= 13))
+    {
+        fase_3[x][y] = PAREDE;
+    }
+}
+void n_fogo(int x, int y, int fase_3[60][25])
+{
+    int espinhos = rand() % 40;
+
+    if (espinhos == 0)
+    {
+        fase_3[x][y] = ESPINHO;
+    }
+    else
+    {
+        fase_3[x][y] = PEDRA_FLAMEJANTE;
+    }
+}
+void n_porta_f3(int x, int y, int fase_3[60][25])
+{
+    if (x == 1 && y == 12)
+    {
+        fase_3[x][y] = PORTA;
+    }
+    else if (x == 58 && y == 12)
+    {
+        fase_3[x][y] = PORTA_FECHADA;
+    }
+}
+void n_botao_f3(int x, int y, int fase_3[60][25])
+{
+    if (x == 41 && y == 2)
+    {
+        fase_3[x][y] = TELEPORTADOR_E;
+    }
+    else if (x == 2 && y == 23)
+    {
+        fase_3[x][y] = BOTAO;
+    }
+}
+void n_chave_f3(int x, int y, int fase_3[60][25])
+{
+    if (x == 41 && y == 12)
+    {
+        fase_3[x][y] = CHAVE_3;
+    }
+    else if (x == 18 && y == 21)
+    {
+        fase_3[x][y] = ESPINHO;
+    }
+    else if (x == 18 && y == 23)
+    {
+        fase_3[x][y] = ESPINHO;
+    }
+    else if (x == 17 && y == 22)
+    {
+        fase_3[x][y] = ESPINHO;
+    }
+    else if (x == 19 && y == 22)
+    {
+        fase_3[x][y] = ESPINHO;
+    }
+    else if (x == 18 && y == 22)
+    {
+        fase_3[x][y] = TELEPORTADOR_D;
+    }
+}
+void n_porta_f2(int x, int y, int fase_2[21][21])
+{
+    if (x == 0 && y == 10)
+    {
+        fase_2[x][y] = PORTA;
+    }
+    else if (x == 20 && y == 10)
+    {
+        fase_2[x][y] = PORTA_FECHADA;
+    }
+}
+void n_chave_f2(int x, int y, int fase_2[21][21])
+{
+    if (x == 17 && y == 17)
+    {
+        fase_2[x][y] = CHAVE_2;
+    }
+    else if (x == 16 && y == 17)
+    {
+        fase_2[x][y] = ESPINHO;
+    }
+    else if (x == 17 && y == 16)
+    {
+        fase_2[x][y] = ESPINHO;
+    }
+}
+void n_botao_f2(int x, int y, int fase_2[21][21])
+{
+    if (x == 3 && y == 3)
+    {
+        fase_2[x][y] = BOTAO;
+    }
+}
+void n_geloparede(int x, int y, int fase_2[21][21])
+{
+    if ((x >= 2 && x <= 7 && y == 2) || (y >= 2 && y <= 7 && x == 2) ||
+     (x >= 13 && x <= 18 && y == 2) || (y >= 2 && y <= 7 && x == 18) ||
+     (x >= 2 && x <= 7 && y == 18) || (y >= 13 && y <= 18 && x == 2) ||
+     (x >= 13 && x <= 18 && y == 18) || (y >= 13 && y <= 18 && x == 18))
+    {
+       fase_2[x][y] = PAREDE; 
+    }
+}
+void n_gelo(int x, int y, int fase_2[21][21])
 {
     int espinhos = rand() % 30;
 
@@ -317,7 +724,6 @@ void n_gelo(int x, int y, int fase_2[22][22])
         fase_2[x][y] = GELO;
     }
 }
-
 void n_pedra(int x, int y, int fase_1[16][16])
 {
     int espinhos = rand() % 10000;
@@ -331,52 +737,112 @@ void n_pedra(int x, int y, int fase_1[16][16])
         fase_1[x][y] = PEDRA;
     }
 }
-
-void n_dentrocasa(int casas, int x, int y, int casa[15][15])
+void n_porta_f1(int x, int y, int fase_1[16][16])
 {
-    switch (casas)
+    if (x == 15 && y == 7)
     {
-    case 1:
-        if (x == 8 && y == 14)
-        {
-            casa[x][y] = PORTA;
-        }
-        else if (x == 7 && y == 14)
-        {
-            casa[x][y] = MEIA_PORTA;
-        }
-        else if (x == 0 && y == 0)
-        {
-            casa[x][y] = TELHADO_SE;
-        }
-        else if (x == 0 && y == 14)
-        {
-            casa[x][y] = TELHADO_IE;
-        }
-        else if (x == 14 && y == 0)
-        {
-            casa[x][y] = TELHADO_SD;
-        }
-        else if (x == 14 && y == 14)
-        {
-            casa[x][y] = TELHADO_ID;
-        }
-        else if (x == 0 || x == 14)
-        {
-            casa[x][y] = TELHADO_VERTICAL;
-        }
-        else if (y == 0 || y == 14)
-        {
-            casa[x][y] = TELHADO_HORIZONTAL;
-        }
-        else
-        {
-            casa[x][y] = CASA_CHAO;
-        }
-        break;
+        fase_1[x][y] = PORTA_FECHADA;
     }
 }
-
+void n_void_f1(int x, int y, int fase_1[16][16])
+{
+    if (x == 0 && y >= 6 && y <= 9)
+    {
+        fase_1[x][y] = NULO;
+    }
+}
+void n_chave_f1(int x, int y, int fase_1[16][16])
+{
+    if (x == 13 && y == 9)
+    {
+        fase_1[x][y] = CHAVE;
+    }
+}
+void n_pedraparede(int x, int y, int fase_1[16][16])
+{
+    if ((x >= 1 && x <= 6 && y == 1) || (x == 14 && y == 1) || 
+    (x >= 4 && x <= 6 && y == 2) || (x >= 8 && x <= 12 && y == 2) || (x == 14 && y == 2) || 
+    (x >= 1 && x <= 2 && y == 3) || (x == 6 && y == 3) || (x >= 8 && x <= 12 && y == 3) || (x == 14 && y == 3) || 
+    (x >= 1 && x <= 4 && y == 4) || (x == 6 && y == 4) || (x >= 8 && x <= 12 && y == 4) || (x == 14 && y == 4) ||
+    (x == 8 && y == 5) || (x == 12 && y == 5) || (x == 14 && y == 5) ||
+    (x >= 2 && x <= 4 && y == 6) || (x >= 6 && x <= 8 && y == 6) || (x == 10 && y == 6) || (x >= 12 && x <= 14 && y == 6) ||
+    (x == 4 && y == 7) || (x == 10 && y == 7) ||
+    (x == 2 && y == 8) || (x >= 4 && x <= 13 && y == 8) ||
+    (x == 2 && y == 9) || (x >= 4 && x <= 13 && y == 9) ||
+    (x == 2 && y == 10) || (x == 6 && y == 10) || (x == 8 && y == 10) || (x == 11 && y == 10) || (x >= 13 && x <= 14 && y == 8) ||
+    (x >= 2 && x <= 4 && y == 11) || (x == 6 && y == 11) || (x == 8 && y == 11) || (x >= 10 && x <= 11 && y == 11) ||
+    (x >= 2 && x <= 4 && y == 12) || (x >= 10 && x <= 13 && y == 12) ||
+    (x >= 2 && x <= 5 && y == 13) || (x >= 7 && x <= 8 && y == 13) || (x >= 10 && x <= 11 && y == 13) ||
+    (x >= 7 && x <= 8 && y == 14) || (x >= 13 && x <= 14 && y == 14))
+    {
+        fase_1[x][y] = PAREDE;
+    }
+}
+void n_agua_fase_1(int x, int y, int fase_1[16][16])
+{
+   if ((x == 1 && y >= 3 && y <= 4) || (x == 3 && y >= 11 && y <= 13) || (x == 6 && y >= 2 && y <= 3) || (x == 7 && y >= 8 && y <= 9) || (x == 10 && y >= 2 && y <= 4) || (x == 12 && y >= 8 && y <= 9) || (x == 13 && y == 6))
+   {
+        fase_1[x][y] = AGUA;
+    }
+    
+}
+void n_tapete(int x, int y, int casa_1[15][15])
+{
+    if (x == 7 && y == 7)
+    {
+        casa_1[x][y] = NPC_Q1;
+    }
+    else if (x >= 4 && x <= 10 && y >= 5 && y <= 9)
+    {
+        casa_1[x][y] = TAPETE;
+    }
+}
+void n_chave_v(int x, int y, int casa_1[15][15])
+{
+    if (x == 7 && y == 2)
+    {
+        casa_1[x][y] = CHAVE;
+    }
+}
+void n_dentrocasa_1(int x, int y, int casa_1[15][15])
+{
+    if (x == 8 && y == 14)
+    {
+        casa_1[x][y] = PORTA;
+    }
+    else if (x == 7 && y == 14)
+    {
+        casa_1[x][y] = MEIA_PORTA;
+    }
+    else if (x == 0 && y == 0)
+    {
+        casa_1[x][y] = TELHADO_SE;
+    }
+    else if (x == 0 && y == 14)
+    {
+        casa_1[x][y] = TELHADO_IE;
+    }
+    else if (x == 14 && y == 0)
+    {
+        casa_1[x][y] = TELHADO_SD;
+    }
+    else if (x == 14 && y == 14)
+    {
+        casa_1[x][y] = TELHADO_ID;
+    }
+    else if (x == 0 || x == 14)
+    {
+        casa_1[x][y] = TELHADO_VERTICAL;
+    }
+    else if (y == 0 || y == 14)
+    {
+        casa_1[x][y] = TELHADO_HORIZONTAL;
+    }
+    else
+    {
+        casa_1[x][y] = CASA_CHAO;
+    }    
+}
 void n_void(int x, int y, int vila[34][20])
 {
     if (x == 33 && y >= 8 && y <= 11)
@@ -384,7 +850,6 @@ void n_void(int x, int y, int vila[34][20])
         vila[x][y] = NULO;
     }
 }
-
 void n_lago(int x, int y, int vila[34][20])
 {
     if((x >= 12 && x <= 32 && y >= 15 && y <= 17) || (((x >= 13 && x <= 14) || (x >= 20 && x <= 27) || (x >= 31 && x <= 32)) && y == 13) || (((x >= 13 && x <= 16) || (x >= 18 && x <= 27) || (x >= 30 && x <= 32)) && y == 14) || (((x >= 15 && x <= 18) || (x >= 21 && x <= 23) || (x >= 28 && x <= 31)) && y == 18))
@@ -392,7 +857,6 @@ void n_lago(int x, int y, int vila[34][20])
         vila[x][y] = AGUA;
     }
 }
-
 void n_terra(int x, int y, int vila[34][20])
 {
     if ((y >= 8 && y <= 11) || (x >= 5 && x <=7 && y >= 7 && y <= 12) || (x >= 22 && x <= 24 && y >= 6 && y <= 7))
@@ -400,7 +864,13 @@ void n_terra(int x, int y, int vila[34][20])
         vila[x][y] = TERRA;
     }
 }
-
+void n_paredevila(int x, int y, int vila[34][20])
+{
+    if (x == 33 && y >= 8 && y <= 11)
+    {
+        vila[x][y] = TELHA;
+    }
+}
 void n_casa(int casa, int x, int y, int vila[34][20])
 {
     switch (casa)
@@ -526,24 +996,468 @@ void n_casa(int casa, int x, int y, int vila[34][20])
         break;
     }
 }
-
 void n_grama(int x, int y, int vila[34][20])
 {
     vila[x][y] = GRAMA;
 }
 
-void definir_fase_2(int fase_2[22][22])
+// ----- Funções de Interação na Fase 3 -----
+void interagir_fase_3_i(int pontos_i)
 {
-    for (int y = 1; y < 21; y++)
+    char tecla;
+    tecla = _getch();
+
+    switch (pontos_i)
     {
-        for (int x = 1; x < 21; x++)
+    case 1:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            botao_3 = 1;
+        }
+        break;
+    case 2:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            chave_3 = 1;
+        }
+        break;
+    case 3:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            saida = 1;
+        }
+        break;
+    case 4:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            vitoria();
+        }
+        break;
+    }
+}
+void interagir_fase_3(int h_fase_3[2])
+{
+    int pontos_i = 0;
+
+    if (h_fase_3[0] == 4 && h_fase_3[1] == 27 && botao_3 == 0)
+    {
+        pontos_i = 1;
+        limpar_tela = 1;
+    }
+    if (h_fase_3[0] == 82 && h_fase_3[1] == 16 && chave_3 == 0)
+    {
+        pontos_i = 2;
+        limpar_tela = 1;
+    }
+    if (h_fase_3[0] == 4 && h_fase_3[1] == 16)
+    {
+        pontos_i = 3;
+        limpar_tela = 1;
+    }
+    if (h_fase_3[0] == 114 && h_fase_3[1] == 16 && chave_3 == 2)
+    {
+        pontos_i = 4;
+        limpar_tela = 1;
+    }
+
+    switch (pontos_i)
+    {
+    case 1:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_3[0] + 2,h_fase_3[1]);
+        interagir_fase_3_i(pontos_i);
+
+        break;
+    case 2:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_3[0] + 2,h_fase_3[1]);
+        interagir_fase_3_i(pontos_i);
+
+        break;
+    case 3:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_3[0] + 2,h_fase_3[1]);
+        interagir_fase_3_i(pontos_i);
+
+        break;
+    case 4:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_3[0] + 2,h_fase_3[1]);
+        interagir_fase_3_i(pontos_i);
+
+        break;
+    }
+}
+void definir_fase_3(int fase_3[60][25])
+{
+    for (int y = 1; y < 24; y++)
+    {
+        for (int x = 1; x < 59; x++)
         {
-            n_gelo(x, y, fase_2);
+            n_fogo(x, y, fase_3);
+            n_fogoparede(x, y, fase_3);
+            n_porta_f3(x, y, fase_3);
+            n_chave_f3(x, y, fase_3);
+            n_botao_f3(x, y, fase_3);
+        }
+    }
+
+    for (int y = 0; y < 25; y++)
+    {
+        for (int x = 0; x < 60; x++)
+        {
+
+        }
+    }
+}
+void printar_fase_3(int variavel, int fase_3[60][25], int h_ant_fase_3[2])
+{
+    char pedra_de_fogo[3] = {',','.','_'};
+ 
+    switch (variavel)
+    {
+    case 1:
+        system("cls");
+        printf("\n\n\n\n\n");
+        for (int y = 0; y < 25; y++)
+        {
+            for (int x = 0; x < 60; x++)
+            {
+                if (fase_3[x][y] == PAREDE)
+                {
+                    printf(" \033[38;5;52m#\033[0m");
+                }
+                else if(fase_3[x][y] == PEDRA_FLAMEJANTE)
+                {
+                    printf(" \033[38;5;208m%c\033[0m", pedra_de_fogo[rand() % 3]);
+                }
+                else if(fase_3[x][y] == ESPINHO)
+                {
+                    printf(" \033[38;5;166m*\033[0m");
+                }
+                else if(fase_3[x][y] == BOTAO)
+                {
+                    printf(" \033[1;32mO\033[0m");
+                }
+                else if(fase_3[x][y] == CHAVE_3)
+                {
+                    printf(" \033[1;33mp\033[0m");
+                }
+                else if(fase_3[x][y] == PORTA)
+                {
+                    printf(" \033[0;33m=\033[0m");
+                }
+                else if(fase_3[x][y] == PORTA_FECHADA)
+                {
+                    printf(" \033[0;33mD\033[0m");
+                }
+                else if(fase_3[x][y] == BOTAO_ACIONADO)
+                {
+                    printf(" \033[1;32mO\033[0m");
+                }
+                else if(fase_3[x][y] == TELEPORTADOR_D)
+                {
+                    printf(" \033[1;31m>\033[0m");
+                }
+                else if(fase_3[x][y] == TELEPORTADOR_E)
+                {
+                    printf(" \033[1;36m<\033[0m");
+                }
+            }
+            printf("\n");
+        }
+        break;
+    case 2:
+        if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == PAREDE)
+        {
+            printf(" \033[38;5;52m#\033[0m");
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == PEDRA_FLAMEJANTE)
+        {
+            printf(" \033[38;5;208m%c\033[0m", pedra_de_fogo[rand() % 3]);
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == ESPINHO)
+        {
+            printf(" \033[38;5;166m*\033[0m");
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == CHAVE_3)
+        {
+            printf(" \033[1;33mp\033[0m");
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == BOTAO)
+        {
+            printf(" \033[1;32mO\033[0m");
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == BOTAO_ACIONADO)
+        {
+            printf(" \033[1;31mO\033[0m");
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == TELEPORTADOR_D)
+        {
+            printf(" \033[1;31m>\033[0m");
+        }
+        else if(fase_3[h_ant_fase_3[0] / 2][h_ant_fase_3[1] - 4] == TELEPORTADOR_E)
+        {
+            printf(" \033[1;34m<\033[0m");
+        }
+
+        break;
+    }
+}
+void fase_3()
+{
+    int fase_3[60][25] = {0};
+
+    int h_fase_3[2] = {4,16};
+    int h_ant_fase_3[2] = {4,16};
+
+    int c1_fase_3[2] = {36,16};
+    int c1_ant_fase_3[2] = {36,16};
+
+    limpar_tela = 1;
+
+    int cd = 0;
+
+    definir_fase_3(fase_3);
+
+    Recarregar_fase_3:
+
+    if (chave_3 == 2)
+    {
+        fase_3[41][12] = PEDRA_FLAMEJANTE;
+        fase_3[58][12] = PORTA;
+    }
+
+    if (botao_3 == 1)
+    {
+        fase_3[2][23] = BOTAO_ACIONADO;
+        fase_3[18][21] = PEDRA_FLAMEJANTE;
+        fase_3[18][23] = PEDRA_FLAMEJANTE;
+        fase_3[17][22] = PEDRA_FLAMEJANTE;
+        fase_3[19][22] = PEDRA_FLAMEJANTE;
+    }
+
+    printar_fase_3(1, fase_3, h_ant_fase_3);
+
+    chefe(c1_fase_3);
+    hero(h_fase_3);
+
+    while (1)
+    {
+        saida = 0;
+        cd = 0;
+
+        h_ant_fase_3[0] = h_fase_3[0];
+        h_ant_fase_3[1] = h_fase_3[1];
+
+        c1_ant_fase_3[0] = c1_fase_3[0];
+        c1_ant_fase_3[1] = c1_fase_3[1];
+
+
+        limpar_goto(4, h_fase_3);
+        interagir_fase_3(h_fase_3);
+
+        if (saida != 0)
+        {
+            return;
+        }
+
+        if (chave_3 == 1)
+        {
+            chave_3 = 2;
+            fase_3[41][12] = PEDRA_FLAMEJANTE;
+            fase_3[58][12] = PORTA;
+            goto Recarregar_fase_3;
+        }
+
+        if (botao_3 == 1)
+        {
+            botao_3 = 2;
+            fase_3[2][23] = BOTAO_ACIONADO;
+            fase_3[18][21] = PEDRA_FLAMEJANTE;
+            fase_3[18][23] = PEDRA_FLAMEJANTE;
+            fase_3[17][22] = PEDRA_FLAMEJANTE;
+            fase_3[19][22] = PEDRA_FLAMEJANTE;
+            goto Recarregar_fase_3;
+        }
+
+        int hero_mx = h_fase_3[0] / 2;
+        int hero_my = h_fase_3[1] - 4;
+
+        if ((hero_mx > 0 && hero_mx < 60 && hero_my > 0 && hero_my < 25) && fase_3[hero_mx][hero_my] == ESPINHO)
+        {
+            vidas--;
+            morte(h_fase_3);
+            fase_3[hero_mx][hero_my] = PEDRA_FLAMEJANTE;
+        }
+
+        if ((h_fase_3[0] == c1_ant_fase_3[0] && h_fase_3[1] == c1_ant_fase_3[1]) || (h_fase_3[0] == c1_ant_fase_3[0] && h_fase_3[1] == c1_ant_fase_3[1] && c1_ant_fase_3[0] == h_ant_fase_3[0] && c1_ant_fase_3[1] == h_ant_fase_3[1]))
+        {
+            c1_fase_3[0] = 36;
+            c1_ant_fase_3[0] = 36;
+
+            c1_fase_3[1] = 16;
+            c1_ant_fase_3[1] = 16;
+
+            vidas--;
+            morte(h_fase_3);
+        }
+
+        if (fim == 1)
+        {
+            return;
+        }
+
+        h_mov(4, h_fase_3, NULL, NULL, NULL, fase_3, NULL);
+        c_mov(c1_fase_3, h_fase_3, fase_3);
+
+        gotoxy(c1_ant_fase_3[0], c1_ant_fase_3[1]);
+        printar_fase_3(2, fase_3, c1_ant_fase_3);
+
+        chefe(c1_fase_3);
+
+        gotoxy(h_ant_fase_3[0], h_ant_fase_3[1]);
+        printar_fase_3(2, fase_3, h_ant_fase_3);
+
+        hero(h_fase_3);
+
+        if (fase_3[h_fase_3[0] / 2][h_fase_3[1] - 4] == TELEPORTADOR_D && cd == 0)
+        {
+            h_fase_3[0] = h_fase_3[0] + 46;
+            h_fase_3[1] = h_fase_3[1] - 20;  
+            cd++;
+            limpar_tela = 1;        
+            goto Recarregar_fase_3;
+        }
+        else if (fase_3[h_fase_3[0] / 2][h_fase_3[1] - 4] == TELEPORTADOR_E && cd == 0)
+        {
+            h_fase_3[0] = h_fase_3[0] - 46;
+            h_fase_3[1] = h_fase_3[1] + 20;
+            cd++;
+            limpar_tela = 1;
+            goto Recarregar_fase_3;
         }
     }
 }
 
-void printar_fase_2(int variavel, int fase_2[22][22], int h_ant_fase_2[2])
+// ----- Funções de Interação na Fase 2 -----
+void interagir_fase_2_i(int pontos_i)
+{
+    char tecla;
+    tecla = _getch();
+
+    switch (pontos_i)
+    {
+    case 1:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            botao_2 = 1;
+        }
+        break;
+    case 2:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            chave_2 = 1;
+        }
+        break;
+    case 3:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            saida++;
+        }
+        break;
+    case 4:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            fase_3();
+        }
+        break;
+    }
+}
+void interagir_fase_2(int h_fase_2[2])
+{
+    int pontos_i;
+
+    if (h_fase_2[0] == 43 && h_fase_2[1] == 8 && botao_2 == 0)
+    {
+        pontos_i = 1;
+        limpar_tela = 1;
+    }
+    if (h_fase_2[0] == 71 && h_fase_2[1] == 22 && chave_2 == 0)
+    {
+        pontos_i = 2;
+        limpar_tela = 1;
+    }
+    if (h_fase_2[0] == 39 && h_fase_2[1] == 15)
+    {
+        pontos_i = 3;
+        limpar_tela = 1;
+    }
+    if (h_fase_2[0] == 75 && h_fase_2[1] == 15 && chave_2 == 2)
+    {
+        pontos_i = 4;
+        limpar_tela = 1;
+    }
+    
+
+    switch (pontos_i)
+    {
+    case 1:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_2[0] + 2,h_fase_2[1]);
+        interagir_fase_2_i(pontos_i);
+
+        break;
+    case 2:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_2[0] + 2,h_fase_2[1]);
+        interagir_fase_2_i(pontos_i);
+
+        break;
+    case 3:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_2[0] + 2,h_fase_2[1]);
+        interagir_fase_2_i(pontos_i);
+
+        break;
+    case 4:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_2[0] + 2,h_fase_2[1]);
+        interagir_fase_2_i(pontos_i);
+
+        break;
+    }
+}
+void definir_fase_2(int fase_2[21][21])
+{
+    for (int y = 1; y < 20; y++)
+    {
+        for (int x = 1; x < 20; x++)
+        {
+            n_gelo(x, y, fase_2);
+            n_geloparede(x, y, fase_2);
+            n_chave_f2(x, y, fase_2);
+            n_botao_f2(x, y, fase_2);
+        }
+    }
+
+    for (int y = 0; y < 21; y++)
+    {
+        for (int x = 0; x < 21; x++)
+        {
+            n_porta_f2(x, y, fase_2);
+        }
+    }
+}
+void printar_fase_2(int variavel, int fase_2[21][21], int h_ant_fase_2[2])
 {
     char gelo[3] = {'^',',','v'};
  
@@ -552,10 +1466,10 @@ void printar_fase_2(int variavel, int fase_2[22][22], int h_ant_fase_2[2])
     case 1:
         system("cls");
         printf("\n\n\n\n\n");
-        for (int y = 0; y < 22; y++)
+        for (int y = 0; y < 21; y++)
         {
             printf("                                     ");
-            for (int x = 0; x < 22; x++)
+            for (int x = 0; x < 21; x++)
             {
                 if (fase_2[x][y] == PAREDE)
                 {
@@ -568,6 +1482,26 @@ void printar_fase_2(int variavel, int fase_2[22][22], int h_ant_fase_2[2])
                 else if(fase_2[x][y] == ESPINHO)
                 {
                     printf(" \033[1;34m*\033[0m");
+                }
+                else if(fase_2[x][y] == BOTAO_ACIONADO)
+                {
+                    printf(" \033[1;32mO\033[0m");
+                }
+                else if(fase_2[x][y] == BOTAO)
+                {
+                    printf(" \033[1;32mO\033[0m");
+                }
+                else if(fase_2[x][y] == CHAVE_2)
+                {
+                    printf(" \033[1;33mp\033[0m");
+                }
+                else if(fase_2[x][y] == PORTA)
+                {
+                    printf(" \033[0;33m=\033[0m");
+                }
+                else if(fase_2[x][y] == PORTA_FECHADA)
+                {
+                    printf(" \033[0;33mD\033[0m");
                 }
             }
             printf("\n");
@@ -586,51 +1520,215 @@ void printar_fase_2(int variavel, int fase_2[22][22], int h_ant_fase_2[2])
         {
             printf(" \033[1;34m*\033[0m");
         }
+        else if(fase_2[h_ant_fase_2[0] / 2 - 18][h_ant_fase_2[1] - 5] == CHAVE_2)
+        {
+            printf(" \033[1;33mp\033[0m");
+        }
+        else if(fase_2[h_ant_fase_2[0] / 2 - 18][h_ant_fase_2[1] - 5] == BOTAO)
+        {
+            printf(" \033[1;32mO\033[0m");
+        }
+        else if(fase_2[h_ant_fase_2[0] / 2 - 18][h_ant_fase_2[1] - 5] == BOTAO_ACIONADO)
+        {
+            printf(" \033[1;31mO\033[0m");
+        }
+
         break;
     }
 }
-
 void fase_2()
 {
-    int fase_2[22][22] = {0};
+    int fase_2[21][21] = {0};
 
-    int h_fase_2[2] = {39,14};
-    int h_ant_fase_2[2] = {39,14};
+    int h_fase_2[2] = {39,15};
+    int h_ant_fase_2[2] = {39,15};
+
+    int m_fase_2[2] = {57,15};
+    int m_ant_fase_2[2] = {57,15};
 
     int r_fase_2 = 0;
 
     limpar_tela = 1;
 
+    definir_fase_2(fase_2);
+
     Recarregar_fase_2:
     checar_fase_2 = r_fase_2;
 
-    definir_fase_2(fase_2);
+    if (chave_2 == 2)
+    {
+        fase_2[17][17] = GELO;
+        fase_2[20][10] = PORTA;
+    }
+
+    if (botao_2 == 2)
+    {
+        fase_2[3][3] = BOTAO_ACIONADO;
+        fase_2[17][16] = GELO;
+        fase_2[16][17] = GELO;
+    }
+
     printar_fase_2(1, fase_2, h_ant_fase_2);
 
     hero(h_fase_2);
+    monster(m_fase_2);
 
     while (1)
     {
+        saida = 0;
+
         if (checar_fase_2 != r_fase_2)
         {
             goto Recarregar_fase_2;
         }
 
         limpar_goto(3, h_fase_2);
+        interagir_fase_2(h_fase_2);
+
+        if (saida != 0)
+        {
+            return;
+        }
+
+        if (chave_2 == 1)
+        {
+            chave_2 = 2;
+            fase_2[17][17] = GELO;
+            fase_2[20][10] = PORTA;
+            goto Recarregar_fase_2;
+        }
+
+        if (botao_2 == 1)
+        {
+            botao_2 = 2;
+            fase_2[3][3] = BOTAO_ACIONADO;
+            fase_2[17][16] = GELO;
+            fase_2[16][17] = GELO;
+            goto Recarregar_fase_2;
+        }
+
+        m_ant_fase_2[0] = m_fase_2[0];
+        m_ant_fase_2[1] = m_fase_2[1];
 
         h_ant_fase_2[0] = h_fase_2[0];
         h_ant_fase_2[1] = h_fase_2[1];
 
-        h_mov(3, h_fase_2, NULL, NULL, fase_2, NULL, NULL, NULL);
+        int hero_mx = (h_fase_2[0] - 36) / 2;
+        int hero_my =  h_fase_2[1] - 5;
+
+        if ((hero_mx > 0 && hero_mx < 21 && hero_my > 0 && hero_my < 21) && fase_2[hero_mx][hero_my] == ESPINHO)
+        {
+            vidas--;
+            morte(h_fase_2);
+            fase_2[hero_mx][hero_my] = GELO;
+        }
+
+        if ((h_fase_2[0] == m_fase_2[0] && h_fase_2[1] == m_fase_2[1]) || (h_fase_2[0] == m_ant_fase_2[0] && h_fase_2[1] == m_ant_fase_2[1] && m_fase_2[0] == h_ant_fase_2[0] && m_fase_2[1] == h_ant_fase_2[1]))
+        {
+            m_fase_2[0] = 57;
+            m_ant_fase_2[0] = 57;
+
+            m_fase_2[1] = 15;
+            m_ant_fase_2[1] = 15;
+
+            vidas--;
+            morte(h_fase_2);
+        }
+
+        if (fim == 1)
+        {
+            return;
+        }
+
+        m_mov(1, m_fase_2, fase_2);
+        h_mov(3, h_fase_2, NULL, NULL, fase_2, NULL, NULL);
+
+        gotoxy(m_ant_fase_2[0], m_ant_fase_2[1]);
+        printar_fase_2(2, fase_2, m_ant_fase_2);
+
+        monster(m_fase_2);
 
         gotoxy(h_ant_fase_2[0], h_ant_fase_2[1]);
         printar_fase_2(2, fase_2, h_ant_fase_2);
 
         hero(h_fase_2);
     }
-    
 }
 
+// ----- Funções de Interação na Fase 1 -----
+void interagir_fase_1_i(int pontos_i)
+{
+    char tecla;
+    tecla = _getch();
+
+    switch (pontos_i)
+    {
+    case 1:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            chave_1 = 1;
+        }
+        break;
+    case 2:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            fase_2();
+        }
+        break;
+    case 3:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            saida++;
+        }
+        break;
+    }
+}
+void interagir_fase_1(int h_fase_1[2])
+{
+    int pontos_i;
+
+    if (h_fase_1[0] == 70 && h_fase_1[1] == 16 && chave_1 == 0)
+    {
+        pontos_i = 1;
+        limpar_tela = 1;
+    }
+    if (h_fase_1[0] == 72 && h_fase_1[1] == 14 && chave_1 == 2)
+    {
+        pontos_i = 2;
+        limpar_tela = 1;
+    }
+    if (h_fase_1[0] == 46 && h_fase_1[1] >= 13 && h_fase_1[1] <= 16)
+    {
+        pontos_i = 3;
+        limpar_tela = 1;
+    }
+    
+
+    switch (pontos_i)
+    {
+    case 1:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_1[0] + 2,h_fase_1[1]);
+        interagir_fase_1_i(pontos_i);
+
+        break;
+    case 2:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_1[0] + 2,h_fase_1[1]);
+        interagir_fase_1_i(pontos_i);
+
+        break;
+    case 3:
+        gotoxy(0,2);
+        printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_fase_1[0] + 2,h_fase_1[1]);
+        interagir_fase_1_i(pontos_i);
+
+        break;
+    }
+}
 void definir_fase_1(int fase_1[16][16])
 {
     for (int y = 1; y < 15; y++)
@@ -638,14 +1736,31 @@ void definir_fase_1(int fase_1[16][16])
         for (int x = 1; x < 15; x++)
         {
             n_pedra(x, y, fase_1);
+            n_pedraparede(x, y, fase_1);
+            n_agua_fase_1(x, y, fase_1);
+
+            if (chave_1 == 0)
+            {
+                n_chave_f1(x, y, fase_1);
+            }
         }
     }
-}
 
+    for (int x = 0; x < 16; x++)
+    {
+        for (int y = 0; y < 16; y++)
+        {
+            n_void_f1(x, y, fase_1);
+            n_porta_f1(x, y, fase_1);
+        }
+    }
+    
+}
 void printar_fase_1(int variavel, int fase_1[16][16], int h_ant_fase_1[2])
 {
     char pedra[3] = {'.',',',';'};
- 
+    char agua[3] = {'~','~','='};
+
     switch (variavel)
     {
     case 1:
@@ -668,6 +1783,26 @@ void printar_fase_1(int variavel, int fase_1[16][16], int h_ant_fase_1[2])
                 {
                     printf(" \033[1;38m*\033[0m");
                 }
+                else if(fase_1[x][y] == AGUA)
+                {
+                    printf(" \033[1;34m%c\033[0m", agua[rand() % 3]);
+                }
+                else if(fase_1[x][y] == CHAVE)
+                {
+                    printf(" \033[1;33mp\033[0m");
+                }
+                else if(fase_1[x][y] == NULO)
+                {
+                    printf("  ");
+                }
+                else if(fase_1[x][y] == PORTA_FECHADA)
+                {
+                    printf(" \033[0;33mD\033[0m");
+                }
+                else if(fase_1[x][y] == PORTA)
+                {
+                    printf(" \033[0;33m=\033[0m");
+                }
             }
             printf("\n");
         }
@@ -685,10 +1820,17 @@ void printar_fase_1(int variavel, int fase_1[16][16], int h_ant_fase_1[2])
         {
             printf(" \033[1;38m*\033[0m");
         }
+        else if(fase_1[h_ant_fase_1[0] / 2 - 22][h_ant_fase_1[1] - 7] == AGUA)
+        {
+            printf(" \033[1;34m%c\033[0m", agua[rand() % 3]);
+        }
+        else if(fase_1[h_ant_fase_1[0] / 2 - 22][h_ant_fase_1[1] - 7] == CHAVE)
+        {
+            printf(" \033[1;33mp\033[0m");
+        }
         break;
     }
 }
-
 void fase_1()
 {
     int fase_1[16][16] = {0};
@@ -698,229 +1840,130 @@ void fase_1()
 
     int r_fase_1 = 0;
 
-    limpar_tela = 1;
+    definir_fase_1(fase_1);
 
     Recarregar_fase_1:
     checar_fase_1 = r_fase_1;
 
-    definir_fase_1(fase_1);
+    if (chave_1 == 2)
+    {
+        fase_1[13][9] = PEDRA;
+        fase_1[15][7] = PORTA;
+    }
+
     printar_fase_1(1, fase_1, h_ant_fase_1);
 
     hero(h_fase_1);
 
     while (1)
     {
+        saida = 0;
+        limpar_tela = 0;
+        
+        if (fim == 1)
+        {
+            return;
+        }
+
         if (checar_fase_1 != r_fase_1)
         {
             goto Recarregar_fase_1;
         }
 
-        limpar_goto(2, h_fase_1);
+        if (saida != 0)
+        {
+            return;
+        }
+
+        if (chave_1 == 1)
+        {
+            chave_1 = 2;
+            fase_1[13][9] = PEDRA;
+            fase_1[15][7] = PORTA;
+            goto Recarregar_fase_1;
+        }
 
         h_ant_fase_1[0] = h_fase_1[0];
         h_ant_fase_1[1] = h_fase_1[1];
 
-        h_mov(2, h_fase_1, NULL, fase_1, NULL, NULL, NULL, NULL);
+        h_mov(2, h_fase_1, NULL, fase_1, NULL, NULL, NULL);
 
         gotoxy(h_ant_fase_1[0], h_ant_fase_1[1]);
         printar_fase_1(2, fase_1, h_ant_fase_1);
 
         hero(h_fase_1);
+
+        interagir_fase_1(h_fase_1);
+        limpar_goto(2, h_fase_1);
     }
     
 }
 
-void definir_casa(int casas, int casa[15][15])
-{
-    switch (casas)
-    {
-    case 1:
-        for (int y = 0; y < 15; y++)
-        {
-            for (int x = 0; x < 15; x++)
-            {
-                n_dentrocasa(1, x, y, casa);
-            }
-        }
-        break;
-    case 2:
-
-        
-
-        break;
-    }
-}
-
-void printar_casa(int casas, int variavel, int casa[15][15], int h_ant_casa[2])
-{
-    switch (casas)
-    {
-    case 1:
-        switch (variavel)
-        {
-        case 1:
-            system("cls");
-            printf("\n\n\n\n\n\n\n");
-
-            for (int y = 0; y < 15; y++)
-            {
-                printf("                                             ");
-                for (int x = 0; x < 15; x++)
-                {
-                    if(casa[x][y] == PORTA)
-                    {
-                        printf("\033[1;33m=\033[0;31m-\033[0m");
-                    }
-                    else if(casa[x][y] == MEIA_PORTA)
-                    {
-                        printf("\033[1;33m==\033[0m");
-                    }
-                    else if(casa[x][y] == TELHADO_SE)
-                    {
-                        printf(" \033[0;31m┌\033[0m");
-                    }
-                    else if(casa[x][y] == TELHADO_SD)
-                    {
-                        printf(" \033[0;31m┐\033[0m");
-                    }
-                    else if(casa[x][y] == TELHADO_IE)
-                    {
-                        printf(" \033[0;31m└\033[0m");
-                    }
-                    else if(casa[x][y] == TELHADO_ID)
-                    {
-                        printf(" \033[0;31m┘\033[0m");
-                    }
-                    else if(casa[x][y] == TELHADO_VERTICAL)
-                    {
-                        printf(" \033[0;31m│\033[0m");
-                    }
-                    else if(casa[x][y] == TELHADO_HORIZONTAL)
-                    {
-                        printf(" \033[0;31m─\033[0m");
-                    }
-                    else if(casa[x][y] == CASA_CHAO)
-                    {
-                        printf(" \033[1;31m=\033[0m");
-                    }
-                }
-                printf("\n");
-            }
-            break;
-        case 2:
-            if(casa[h_ant_casa[0] / 2 - 22][h_ant_casa[1] - 7] == CASA_CHAO)
-            {
-                printf(" \033[1;31m=\033[0m");
-            }
-            break;
-        }
-        break;
-    case 2:
-        switch (variavel)
-        {
-        case 1:
-            
-            break;
-        case 2:
-
-            break;
-        }
-        break;
-        break;
-    }
-}
-
-void casa_interior(int casas)
-{
-    int casa_1[15][15] = {0};
-    int casa_2[15][15];
-
-    int h_casa[2] = {59,20};
-    int h_ant_casa[2] = {59,20};
-
-    limpar_tela = 1;
-
-    checar_vila = 1;
-
-    switch (casas)
-    {
-    case 1:        
-        definir_casa(1, casa_1);
-        printar_casa(1, 1, casa_1, h_ant_casa);
-
-        hero(h_casa);
-
-        while (1)
-        {
-            limpar_goto(5, h_casa);
-
-            h_ant_casa[0] = h_casa[0];
-            h_ant_casa[1] = h_casa[1];
-
-            h_mov(5, h_casa, NULL, NULL, NULL, NULL, casa_1, NULL);
-
-            gotoxy(h_casa[0], h_casa[1]);
-            printar_casa(1, 2,casa_1, h_ant_casa);
-
-            hero(h_casa);
-        }
-        break;
-    case 2:
-
-
-        break;
-    }
-}
-
-void interagir(int mapa, int pontos_i)
+// ----- Funções de Interação na Casa -----
+void interagir_casa_1_i(int pontos_i)
 {
     char tecla;
-
     tecla = _getch();
 
-    switch (mapa)
+    switch (pontos_i)
     {
     case 1:
-        switch (pontos_i)
-        {
-        case 1:
-            if (tecla == 'i' || tecla == 'I')
-            {    
-                casa_interior(1);
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            gotoxy(0,2);
+
+            int randomico = rand() % 3;
+
+            if (randomico == 0)
+            {
+                printf("                    \033[1;31m[ Saudações, forasteiro! Meu nome é Arvandor, o Velho Guardião de Vila Miralume ]\033[0m                                              ");
             }
-            break;
-        case 2:
-            if (tecla == 'i' || tecla == 'I')
-            {    
-                casa_interior(2);
+            else if (randomico == 1)
+            {
+                printf("                \033[1;31m[ Há muito tempo esta aldeia repousa sob a luz das vagalumes que flutuam sobre o lago ]\033[0m                                              ");
             }
-            break;
-        case 3:
-            if (tecla == 'i' || tecla == 'I')
-            {    
-                fase_1();
+            else
+            {
+                printf("           \033[1;31m[ Dizem que, além da montanha gelada, repousa um artefato ancestral capaz de guiar a humanidade ]\033[0m                                              ");
             }
-            break;
+            
+            limpar_tela = 1;
+        }
+        break;
+    case 2:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            saida++;
+        }
+        break;
+    case 3:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            chave_v = 1;
         }
         break;
     }
 }
-
-void interagir_vila(int h_vila[2])
+void interagir_casa_1(int h_casa_1[2])
 {
     int pontos_i;
 
-    if (h_vila[0] == 38 && h_vila[1] == 12)
+    if ((h_casa_1[0] == 59 && h_casa_1[1] == 13) || (h_casa_1[0] == 59 && h_casa_1[1] == 15) || (h_casa_1[0] == 57 && h_casa_1[1] == 14) || (h_casa_1[0] == 61 && h_casa_1[1] == 14))
     {
         pontos_i = 1;
         limpar_tela = 1;
     }
-    else if (h_vila[0] == 72 && h_vila[1] == 11)
+    else if (h_casa_1[0] == 59 && h_casa_1[1] == 20)
     {
         pontos_i = 2;
         limpar_tela = 1;
     }
-    else if (h_vila[0] == 90 && (h_vila[1] >= 13 && h_vila[1] <= 16))
+    else if (h_casa_1[0] == 59 && h_casa_1[1] == 20)
+    {
+        pontos_i = 2;
+        limpar_tela = 1;
+    }
+    else if (h_casa_1[0] == 59 && h_casa_1[1] == 9 && chave_v == 0)
     {
         pontos_i = 3;
         limpar_tela = 1;
@@ -930,24 +1973,245 @@ void interagir_vila(int h_vila[2])
     {
     case 1:
         gotoxy(0,2);
+        printf("                                         \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_casa_1[0] + 2,h_casa_1[1]);
+        interagir_casa_1_i(1);
+
+        break;
+    case 2:
+        gotoxy(0,2);
+        printf("                                         \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_casa_1[0] + 2,h_casa_1[1]);
+        interagir_casa_1_i(2);
+
+        break;
+    case 3:
+        gotoxy(0,2);
+        printf("                                         \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
+        gotoxy(h_casa_1[0] + 2,h_casa_1[1]);
+        interagir_casa_1_i(3);
+
+        break;
+    }
+}
+void definir_casa_1(int casa_1[15][15])
+{
+    for (int y = 0; y < 15; y++)
+    {
+        for (int x = 0; x < 15; x++)
+        {
+            n_dentrocasa_1(x, y, casa_1);
+            n_tapete(x, y, casa_1);
+            n_chave_v(x, y, casa_1);
+        }
+    }
+}
+void printar_casa_1(int variavel, int casa_1[15][15], int h_ant_casa_1[2])
+{
+    switch (variavel)
+    {
+    case 1:
+        system("cls");
+        printf("\n\n\n\n\n\n\n");
+        for (int y = 0; y < 15; y++)
+        {
+            printf("                                             ");
+            for (int x = 0; x < 15; x++)
+            {
+                if(casa_1[x][y] == PORTA)
+                {
+                    printf("\033[1;33m=\033[0;31m-\033[0m");
+                }
+                else if(casa_1[x][y] == MEIA_PORTA)
+                {
+                    printf("\033[1;33m==\033[0m");
+                }
+                else if(casa_1[x][y] == TELHADO_SE)
+                {
+                    printf(" \033[0;31m┌\033[0m");
+                }
+                else if(casa_1[x][y] == TELHADO_SD)
+                {
+                    printf(" \033[0;31m┐\033[0m");
+                }
+                else if(casa_1[x][y] == TELHADO_IE)
+                {
+                    printf(" \033[0;31m└\033[0m");
+                }
+                else if(casa_1[x][y] == TELHADO_ID)
+                {
+                    printf(" \033[0;31m┘\033[0m");
+                }
+                else if(casa_1[x][y] == TELHADO_VERTICAL)
+                {
+                    printf(" \033[0;31m│\033[0m");
+                }
+                else if(casa_1[x][y] == TELHADO_HORIZONTAL)
+                {
+                    printf(" \033[0;31m─\033[0m");
+                }
+                else if(casa_1[x][y] == CASA_CHAO)
+                {
+                    printf(" \033[1;31m=\033[0m");
+                }
+                else if(casa_1[x][y] == TAPETE)
+                {
+                    printf(" \033[38;5;208m#\033[0m");
+                }
+                else if(casa_1[x][y] == NPC_Q1)
+                {
+                    printf(" \033[1;37mN\033[0m");
+                }
+                else if(casa_1[x][y] == CHAVE)
+                {
+                    printf(" \033[1;33mp\033[0m");
+                }
+            }
+            printf("\n");
+        }
+        break;
+    case 2:
+        if(casa_1[h_ant_casa_1[0] / 2 - 22][h_ant_casa_1[1] - 7] == CASA_CHAO)  
+        {
+            printf(" \033[1;31m=\033[0m");
+        }
+        else if(casa_1[h_ant_casa_1[0] / 2 - 22][h_ant_casa_1[1] - 7] == TAPETE)  
+        {
+            printf(" \033[38;5;208m#\033[0m");
+        }
+        else if(casa_1[h_ant_casa_1[0] / 2 - 22][h_ant_casa_1[1] - 7] == CHAVE)  
+        {
+            printf(" \033[1;33mp\033[0m");
+        }
+        break;
+    }
+}
+void casa_1()
+{
+    int casa_1[15][15] = {0};
+    int h_casa_1[2] = {59,20};
+    int h_ant_casa_1[2] = {59,20};
+
+    limpar_tela = 1;
+    saida = 0;
+
+    definir_casa_1(casa_1);
+
+    Recarregar_casa:
+
+    if (chave_v >= 2)
+    {
+       system("cls");
+       casa_1[7][2] = CASA_CHAO;
+       chave_v = 2;
+    }
+
+    printar_casa_1(1, casa_1, h_ant_casa_1);
+
+    hero(h_casa_1);
+
+    while (1)
+    {   
+        if (chave_v == 1)
+        {
+            chave_v = 2;
+            goto Recarregar_casa;
+        }
+        
+
+        limpar_goto(5, h_casa_1);
+        interagir_casa_1(h_casa_1);
+        gotoxy(h_casa_1[0] + 2,h_casa_1[1]);
+
+        h_ant_casa_1[0] = h_casa_1[0];
+        h_ant_casa_1[1] = h_casa_1[1];
+
+        if (saida != 0)
+        {
+            return;
+        }
+
+        h_mov(5, h_casa_1, NULL, NULL, NULL, NULL, casa_1);
+
+        gotoxy(h_ant_casa_1[0], h_ant_casa_1[1]);
+        printar_casa_1(2 ,casa_1, h_ant_casa_1);
+
+        hero(h_casa_1);
+    }
+}
+
+// ----- Funções de Interação na Vila -----
+void interagir_vila_i(int pontos_i)
+{
+    char tecla;
+    tecla = _getch();
+
+    switch (pontos_i)
+    {
+    case 1:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            casa_1();
+        }
+        break;
+    case 2:
+        if (tecla == 'i' || tecla == 'I')
+        {    
+            fase_1();
+        }
+        break;
+    }
+
+    if (saida != 0)
+    {
+        return;
+    }
+}
+void interagir_vila(int h_vila[2])
+{
+    int pontos_i;
+
+    if (h_vila[0] == 38 && h_vila[1] == 12)
+    {
+        pontos_i = 1;
+        limpar_tela = 1;
+    }
+    else if (h_vila[0] == 90 && (h_vila[1] >= 13 && h_vila[1] <= 16) && chave_v == 3)
+    {
+        pontos_i = 2;
+        limpar_tela = 1;
+    }
+
+    switch (pontos_i)
+    {
+    case 1:
+        gotoxy(0,2);
         printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
         gotoxy(h_vila[0] + 2,h_vila[1]);
-        interagir(1, 1);
+        interagir_vila_i(1);
+
         break;
     case 2:
         gotoxy(0,2);
         printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
         gotoxy(h_vila[0] + 2,h_vila[1]);
+        interagir_vila_i(2);
+
         break;
     case 3:
         gotoxy(0,2);
         printf("                                       \033[0;37m[ Pressione a tecla \"i\" para interagir ]\033[0m                                       ");
         gotoxy(h_vila[0] + 2,h_vila[1]);
-        interagir(1, 3);
+        interagir_vila_i(3);
+
         break;
     }
-}
 
+    if (saida != 0)
+    {
+        return;
+    }
+}
 void definir_vila(int vila[34][20])
 {
     for (int y = 1; y < 19; y++)
@@ -968,11 +2232,11 @@ void definir_vila(int vila[34][20])
         for (int x = 0; x < 34; x++)
         {
             n_void(x, y ,vila);
+            n_paredevila(x, y, vila);
         }
     }
     
 }
-
 void printar_vila(int variavel, int vila[34][20], int h_ant_vila[2])
 {   
     char grama[5] = {'\"', '\'', ';', '^','.'};
@@ -1042,6 +2306,10 @@ void printar_vila(int variavel, int vila[34][20], int h_ant_vila[2])
                 {
                     printf("\033[1;33m=\033[1;31m-\033[0m");
                 }
+                else if(vila[x][y] == TELHA)
+                {
+                    printf("\033[0;37m|\033[0m");
+                }
             }
             printf("\n");
         }
@@ -1070,7 +2338,6 @@ void printar_vila(int variavel, int vila[34][20], int h_ant_vila[2])
         break;
     }
 }
-
 void vila()
 {
     int vila[34][20] = {0};
@@ -1078,32 +2345,54 @@ void vila()
     int h_vila[2] = {72,12};
     int h_ant_vila[2] = {72,12};
 
-    int r_vila = 0;
-
     limpar_tela = 1;
-
-    Recarregar_vila:
-    checar_vila = r_vila;
+    saida = 0;
 
     definir_vila(vila);
+
+    Recarregar_vila:
+
+    if (chave_v == 3)
+    {
+        system("cls");
+        vila[33][8] = NULO;
+        vila[33][9] = NULO;
+        vila[33][10] = NULO;
+        vila[33][11] = NULO;
+    }
+
     printar_vila(1, vila, h_ant_vila);
 
     hero(h_vila);
 
     while (1)
     {
-        if (checar_vila != r_vila)
+        if (fim == 1)
         {
-            goto Recarregar_vila;
+            return;
         }
 
+        if (chave_v == 2)
+        {
+            chave_v = 3;
+            goto Recarregar_vila;
+        }
+        
         limpar_goto(1, h_vila);
         interagir_vila(h_vila);
+
+        if (saida != 0)
+        {
+            saida = 0;
+            definir_vila(vila);
+            printar_vila(1, vila, h_ant_vila);
+            hero(h_vila);
+        }
 
         h_ant_vila[0] = h_vila[0];
         h_ant_vila[1] = h_vila[1];
 
-        h_mov(1, h_vila, vila, NULL, NULL, NULL, NULL, NULL);
+        h_mov(1, h_vila, vila, NULL, NULL, NULL, NULL);
 
         gotoxy(h_ant_vila[0], h_ant_vila[1]);
         printar_vila(2, vila, h_ant_vila);
@@ -1112,10 +2401,21 @@ void vila()
     }
 }
 
+// ----- Função de Créditos -----
+void creditos()
+{
+    system("cls");
+    gotoxy(0,8);
+    printf("                        [ Creditos: Nícola C. Gonçalves , Luca R. Bacelar And Rafael Vergolino ]");
+}
+
+// ----- Função de Menu inicial com opção de iniciar, ver créditos ou sair -----
 void menu()
 {
     char tecla;
     int escolha = 2;
+
+    Morte:
 
     printf("\n\033[1;37m                                Nícola C. Gonçalves and Luca R. Bacelar evaluative roguelike\n");
     printf("\n\n                                                      C O D E X    O F\n");
@@ -1130,6 +2430,20 @@ void menu()
 
     while (1)
     {
+        if (fim == 1)
+        {
+            system("cls");
+            fim = 0;
+            vidas = 3;
+            chave_v = 0;
+            chave_1 = 0;
+            chave_2 = 0;
+            chave_3 = 0;
+            botao_2 = 0;       
+            botao_3 = 0;
+            goto Morte;
+        }
+
         if(escolha == 2)
         {
             gotoxy(0,18);
@@ -1190,7 +2504,7 @@ void menu()
             case 0:
                 return;
             case 1:
-
+                creditos();
                 break;
             case 2:
                 vila();
