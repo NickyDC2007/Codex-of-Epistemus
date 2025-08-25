@@ -75,37 +75,6 @@ Esses são os ícones que você verá no terminal. Cores e símbolos foram escol
 
 ---
 
-## 🏗️ Estrutura do Projeto
-
-```bash
-CodexOf/
-│
-├── src/                 # Código-fonte principal
-│   ├── main.c
-│   ├── fases/           # Lógica das fases
-│   │   ├── fase1.c
-│   │   ├── fase2.c
-│   │   └── fase3.c
-│   ├── menu.c
-│   ├── vila.c
-│   └── util/            # Utilitários gerais
-│       ├── desenho.c
-│       └── movimentacao.c
-│
-├── assets/              # ASCII art, mapas e presets visuais
-│
-├── include/             # Arquivos de cabeçalho (.h)
-│   ├── fase.h
-│   ├── vila.h
-│   ├── util.h
-│   └── globals.h
-│
-├── README.md
-└── Makefile
-```
-
----
-
 ## ⚙️ Como Compilar
 
 Você precisa de um compilador C (recomenda-se `gcc`) no Windows com suporte a Windows.h (MSVC ou MinGW):
@@ -125,19 +94,6 @@ gcc src/main.c -o codexof -luser32 -lkernel32
 
 Este jogo foi desenvolvido como parte de um projeto avaliativo.
 
-- 👨‍💻 **Nícola C. Gonçalves** – Programador Principal, menus
-- 🎮 **Luca R. Bacelar** – Pensamento lógico, narrativa
-- 💾 **Rafael Vergolino** – Lógica de interação
-
----
-
-## ✅ Boas Práticas
-
-- Commits frequentes e descritivos:
-  - `feat: adiciona chefe na fase 3`
-  - `fix: corrige colisão com botão na fase 2`
-  - `refactor: extrai função de impressão para util.c`
-- Separação modular clara de lógica e visual.
-- Código comentado para cada função.
-
+- 👨‍💻 **Nícola C. Gonçalves** – Programador Principal, Menus
+- 🎮 **Luca R. Bacelar** – Pensamento Lógico, Narrativa
 ---
